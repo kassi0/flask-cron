@@ -13,7 +13,7 @@ app = Flask(__name__)
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-APP_VERSION = "v1.0.2"
+APP_VERSION = "v1.0.3"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
