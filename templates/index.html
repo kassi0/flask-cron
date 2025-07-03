@@ -9,6 +9,7 @@
   <body class="bg-light">
     <div class="container py-5">
       <h1 class="mb-4">Gerenciador de Tarefas Cron </h1>
+      <div class="text-end text-muted me-4 mt-2" id="relogio" style="font-size: 0.9rem;"></div>
 
       <div class="card mb-4">
         <div class="card-header">Nova Tarefa</div>
@@ -120,5 +121,14 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      function atualizaRelogio() {
+        const agora = new Date();
+        const formatado = agora.toLocaleString('pt-BR', { timeZone: 'America/Bahia' });
+        document.getElementById('relogio').textContent = `Horário local: ${formatado}`;
+      }
+      setInterval(atualizaRelogio, 1000);
+      atualizaRelogio();
+    </script>
   </body>
 </html>

@@ -7,13 +7,20 @@ import uuid
 import json
 import os
 import shutil
+import pytz
+import time
+import platform
 from datetime import datetime
 
 app = Flask(__name__)
 scheduler = BackgroundScheduler()
 scheduler.start()
+os.environ['TZ'] = 'America/Bahia'
+# Só executa tzset em sistemas que suportam
+if platform.system() != 'Windows':
+    time.tzset()
 
-APP_VERSION = "v1.0.3"
+APP_VERSION = "v1.0.4"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
