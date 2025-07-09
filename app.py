@@ -21,9 +21,13 @@ os.makedirs(JOBS_DIR, exist_ok=True)
 def load_tasks():
     if os.path.exists(TASK_FILE):
         with open(TASK_FILE, 'r') as f:
-            data = json.load(f)
+            content = f.read().strip()
+            if not content:
+                return []
+            data = json.loads(content)
             return data if isinstance(data, list) else []
     return []
+
 
 def save_tasks(tasks):
     with open(TASK_FILE, 'w') as f:

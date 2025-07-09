@@ -4,6 +4,10 @@ oc start-build flask-cron --from-dir=. --follow
 oc new-app flask-cron
 
 
+oc expose deployment flask-cron --port=5000
+
+
+
 
 
 oc create pvc dados-pvc --request=1Gi --access-mode=ReadWriteOnce
