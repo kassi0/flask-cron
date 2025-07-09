@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gerenciador de Cron</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <div class="container py-5">
+      <h1 class="mb-4">Gerenciador de Tarefas Cron</h1>
+
+      <div class="card mb-4">
+        <div class="card-header">Nova Tarefa</div>
+        <div class="card-body">
+          <form method="post" action="/add" enctype="multipart/form-data" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome</label>
+              <input name="name" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Script (.py)</label>
+              <input type="file" name="script_file" class="form-control" accept=".py">
+            </div>
+            <div class="col-2">
+              <label class="form-label">Minuto</label>
+              <input name="minute" class="form-control" value="*" required>
+            </div>
+            <div class="col-2">
+              <label class="form-label">Hora</label>
+              <input name="hour" class="form-control" value="*" required>
+            </div>
+            <div class="col-2">
+              <label class="form-label">Dia</label>
+              <input name="day" class="form-control" value="*" required>
+            </div>
+            <div class="col-2">
+              <label class="form-label">Mês</label>
+              <input name="month" class="form-control" value="*" required>
+            </div>
+            <div class="col-2">
+              <label class="form-label">Dia da Semana</label>
+              <input name="dow" class="form-control" value="*" required>
+            </div>
+            <div class="col-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100">Adicionar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Tarefas Cadastradas</div>
+        <ul class="list-group list-group-flush">
+          {% for task in tasks %}
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+              <div>
+                <strong>{{ task.name }}</strong> <small class="text-muted">({{ task.command }})</small><br>
+                <span class="badge {{ 'bg-success' if task.enabled else 'bg-secondary' }}">
+                  {{ 'Ativo' if task.enabled else 'Inativo' }}
+                </span><br>
+                <small class="text-muted">
+                  Última execução:
+                  {{ task.last_run if task.last_run else 'Nunca executado' }}
+                </small><br>
+                {% if task.last_output %}
+                  <details class="mt-1">
+                    <summary>Ver saída</summary>
+                    <pre class="bg-dark text-light p-2 rounded small">{{ task.last_output }}</pre>
+                  </details>
+                {% endif %}
+              </div>
+              <div class="btn-group" role="group">
+                <a href="/toggle/{{ task.id }}" class="btn btn-outline-{{ 'danger' if task.enabled else 'success' }}">
+                  {{ 'Desativar' if task.enabled else 'Ativar' }}
+                </a>
+                <a href="/delete/{{ task.id }}" class="btn btn-outline-danger"
+                  onclick="return confirm('Tem certeza que quer excluir esta tarefa?')">
+                  Excluir
+                </a>
+              </div>
+            </li>
+          {% else %}
+            <li class="list-group-item">Nenhuma tarefa cadastrada.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
