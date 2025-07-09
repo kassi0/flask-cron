@@ -1,0 +1,41 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: flask-cron
+  labels:
+    app: flask-cron
+    app.kubernetes.io/component: flask-cron
+    app.kubernetes.io/instance: flask-cron
+  annotations:
+    openshift.io/generated-by: OpenShiftCustomConfig
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'flask-cron:latest'
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/kassi0/flask-cron.git'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: 'python:3.12'
+      env:
+        - name: GIT_SSL_NO_VERIFY
+          value: 'true'
+  triggers:
+    - type: GitHub
+      github:
+        secret: suaSecretAqui
+    - type: Generic
+      generic:
+        secret: suaOutraSecretAqui
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5

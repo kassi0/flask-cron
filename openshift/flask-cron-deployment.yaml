@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: flask-cron
-          image: image-registry.openshift-image-registry.svc:5000/seu-projeto/flask-cron
+          image: image-registry.openshift-image-registry.svc:5000/cron-python-flask/flask-cron
           ports:
             - containerPort: 5000
           volumeMounts:
@@ -48,7 +48,7 @@ spec:
     app: flask-cron
   ports:
     - protocol: TCP
-      port: 80
+      port: 5000
       targetPort: 5000
 ---
 apiVersion: route.openshift.io/v1

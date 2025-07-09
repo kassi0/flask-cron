@@ -1,0 +1,107 @@
+
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewApp
+  resourceVersion: '89867168'
+  name: webhook-telegram
+  uid: fe7a10fe-19ce-470a-8645-98d0579e312d
+  creationTimestamp: '2025-07-04T21:08:29Z'
+  generation: 8
+  managedFields:
+    - manager: oc
+      operation: Update
+      apiVersion: build.openshift.io/v1
+      time: '2025-07-04T21:08:29Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:openshift.io/generated-by': {}
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:app.kubernetes.io/component': {}
+            'f:app.kubernetes.io/instance': {}
+        'f:spec':
+          'f:output':
+            'f:to': {}
+          'f:runPolicy': {}
+          'f:source':
+            'f:git':
+              .: {}
+              'f:uri': {}
+            'f:type': {}
+          'f:strategy':
+            'f:dockerStrategy':
+              .: {}
+              'f:from': {}
+            'f:type': {}
+          'f:triggers': {}
+    - manager: Mozilla
+      operation: Update
+      apiVersion: build.openshift.io/v1
+      time: '2025-07-04T21:08:49Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          'f:strategy':
+            'f:dockerStrategy':
+              'f:env': {}
+    - manager: openshift-apiserver
+      operation: Update
+      apiVersion: build.openshift.io/v1
+      time: '2025-07-08T02:01:39Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          'f:imageChangeTriggers': {}
+          'f:lastVersion': {}
+  namespace: webhook-telegram
+  labels:
+    app: webhook-telegram
+    app.kubernetes.io/component: webhook-telegram
+    app.kubernetes.io/instance: webhook-telegram
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'webhook-telegram:latest'
+  resources: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: 'python:3.12'
+      env:
+        - name: GIT_SSL_NO_VERIFY
+          value: 'true'
+  postCommit: {}
+  source:
+    type: Git
+    git:
+      uri: 'https://git.detran.ba.gov.br/InfraEstrutura/webhook-telegram.git'
+  triggers:
+    - type: GitHub
+      github:
+        secret: iniI9z-OyBUXKO8vguxj
+    - type: Generic
+      generic:
+        secret: nOFMVh2OlCvzPQAJEqtJ
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+  runPolicy: Serial
+status:
+  lastVersion: 6
+  imageChangeTriggers:
+    - lastTriggeredImageID: 'python@sha256:0d57f9fd5c5d1d8d277defe52eeec927cd8033fb050879b74a535b2bd2ca7e69'
+      from:
+        name: 'python:3.12'
+      lastTriggerTime: null
