@@ -1,19 +1,20 @@
-FROM python:3.11-slim
+# Base image
+FROM registry.access.redhat.com/ubi9/s2i-base:latest
 
-# Define diretório de trabalho
+# Diretório da aplicação
 WORKDIR /app
 
-# Copia os arquivos para dentro do container
+# Copia arquivos para dentro da imagem
 COPY . .
 
 # Instala dependências
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Garante que a pasta 'dados/' tenha permissão total
-RUN chmod -R 777 dados
+# Garante permissão total na pasta de dados (como você pediu)
+RUN mkdir -p /app/dados && chmod -R 777 /app/dados
 
-# Expõe a porta padrão do Flask
+# Expõe a porta
 EXPOSE 5000
 
-# Comando de inicialização
-CMD ["python", "app.py"]
+# Comando para rodar o servidor com Hypercorn
+CMD ["hypercorn", "app:app", "--bind", "0.0.0.0:5000"]
