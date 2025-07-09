@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-cron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-cron
+  template:
+    metadata:
+      labels:
+        app: flask-cron
+    spec:
+      containers:
+        - name: flask-cron
+          image: image-registry.openshift-image-registry.svc:5000/seu-projeto/flask-cron
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: dados-volume
+              mountPath: /app/dados
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+      volumes:
+        - name: dados-volume
+          persistentVolumeClaim:
+            claimName: dados-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dados-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-cron
+spec:
+  selector:
+    app: flask-cron
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: flask-cron
+spec:
+  to:
+    kind: Service
+    name: flask-cron
+  port:
+    targetPort: 5000
+  tls:
+    termination: edge

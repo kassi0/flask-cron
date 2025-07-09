@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-cron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-cron
+  template:
+    metadata:
+      labels:
+        app: flask-cron
+    spec:
+      containers:
+        - name: flask-cron
+          image: image-registry.openshift-image-registry.svc:5000/<projeto>/flask-cron
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: dados-volume
+              mountPath: /app/dados  # <- aqui será montado o PVC
+      volumes:
+        - name: dados-volume
+          persistentVolumeClaim:
+            claimName: dados-pvc
