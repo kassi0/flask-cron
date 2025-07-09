@@ -23,11 +23,13 @@ def load_tasks():
         with open(TASK_FILE, 'r') as f:
             content = f.read().strip()
             if not content:
+                return []  # <- arquivo existe, mas vazio
+            try:
+                data = json.loads(content)
+                return data if isinstance(data, list) else []
+            except json.JSONDecodeError:
                 return []
-            data = json.loads(content)
-            return data if isinstance(data, list) else []
     return []
-
 
 def save_tasks(tasks):
     with open(TASK_FILE, 'w') as f:
