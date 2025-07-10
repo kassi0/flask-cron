@@ -11,7 +11,7 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Garante permissão total na pasta de dados (como você pediu)
-RUN mkdir -p /app/dados && chmod -R 777 /app/dados
+RUN mkdir -p /app/dados/jobs && chmod -R 777 /app/dados
 
 # Expõe a porta
 EXPOSE 5000

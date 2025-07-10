@@ -19,17 +19,21 @@ TASK_FILE = os.path.join(DATA_DIR, 'tasks.json')
 os.makedirs(JOBS_DIR, exist_ok=True)
 
 def load_tasks():
-    if os.path.exists(TASK_FILE):
-        with open(TASK_FILE, 'r') as f:
-            content = f.read().strip()
-            if not content:
-                return []  # <- arquivo existe, mas vazio
-            try:
-                data = json.loads(content)
-                return data if isinstance(data, list) else []
-            except json.JSONDecodeError:
-                return []
-    return []
+    os.makedirs(DATA_DIR, exist_ok=True)  # Garante que a pasta existe
+    if not os.path.exists(TASK_FILE):
+        with open(TASK_FILE, 'w') as f:
+            json.dump([], f)  # Cria como lista vazia
+        return []
+
+    with open(TASK_FILE, 'r') as f:
+        content = f.read().strip()
+        if not content:
+            return []  # <- existe mas está vazio
+        try:
+            data = json.loads(content)
+            return data if isinstance(data, list) else []
+        except json.JSONDecodeError:
+            return []
 
 def save_tasks(tasks):
     with open(TASK_FILE, 'w') as f:
