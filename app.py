@@ -13,19 +13,22 @@ import platform
 from datetime import datetime
 
 app = Flask(__name__)
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone="America/Bahia")
 scheduler.start()
 os.environ['TZ'] = 'America/Bahia'
 # Só executa tzset em sistemas que suportam
 if platform.system() != 'Windows':
     time.tzset()
 
-APP_VERSION = "v1.0.4"
+APP_VERSION = "v1.0.5"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
 JOBS_DIR = os.path.join(DATA_DIR, 'jobs')
 TASK_FILE = os.path.join(DATA_DIR, 'tasks.json')
+
+print("Timezone atual:", time.tzname)
+print("Horário local:", time.strftime('%Y-%m-%d %H:%M:%S'))
 
 os.makedirs(JOBS_DIR, exist_ok=True)
 
