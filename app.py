@@ -67,6 +67,7 @@ def run_task(script_path):
             task['last_run'] = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             task['last_output'] = output.strip()
             break
+    print(f"Tarefa {task['name']} executada às {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     save_tasks(tasks)
 
 def schedule_job(task):
