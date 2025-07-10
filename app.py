@@ -20,7 +20,7 @@ os.environ['TZ'] = 'America/Bahia'
 if platform.system() != 'Windows':
     time.tzset()
 
-APP_VERSION = "v1.0.5"
+APP_VERSION = "v1.0.6"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
