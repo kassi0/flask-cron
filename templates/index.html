@@ -61,6 +61,10 @@
                   {{ 'Ativo' if task.enabled else 'Inativo' }}
                 </span><br>
                 <small class="text-muted">
+                  Cron:
+                  {{ task.cron.minute }} {{ task.cron.hour }} {{ task.cron.day }} {{ task.cron.month }} {{ task.cron.day_of_week }}
+                </small><br>
+                <small class="text-muted">
                   Última execução:
                   {{ task.last_run if task.last_run else 'Nunca executado' }}
                 </small><br>
