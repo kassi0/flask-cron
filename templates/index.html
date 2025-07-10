@@ -74,12 +74,41 @@
                 <a href="/toggle/{{ task.id }}" class="btn btn-outline-{{ 'danger' if task.enabled else 'success' }}">
                   {{ 'Desativar' if task.enabled else 'Ativar' }}
                 </a>
-                <a href="/delete/{{ task.id }}" class="btn btn-outline-danger"
-                  onclick="return confirm('Tem certeza que quer excluir esta tarefa?')">
+
+                <!-- Botão que abre o modal -->
+                <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ task.id }}">
                   Excluir
-                </a>
+                </button>
               </div>
             </li>
+
+            <!-- Modal de Confirmação -->
+            <div class="modal fade" id="deleteModal{{ task.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ task.id }}" aria-hidden="true">
+              <div class="modal-dialog">
+                <form method="post" action="/delete/{{ task.id }}">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="deleteModalLabel{{ task.id }}">Confirmar Exclusão</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                      Tem certeza que deseja excluir a tarefa <strong>{{ task.name }}</strong>?
+                      <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="delete_folder" id="deleteFolder{{ task.id }}">
+                        <label class="form-check-label" for="deleteFolder{{ task.id }}">
+                          Excluir também a pasta da tarefa
+                        </label>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
           {% else %}
             <li class="list-group-item">Nenhuma tarefa cadastrada.</li>
           {% endfor %}

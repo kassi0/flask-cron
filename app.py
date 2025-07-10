@@ -5,6 +5,7 @@ import subprocess
 import uuid
 import json
 import os
+import shutil
 from datetime import datetime
 
 app = Flask(__name__)
@@ -131,16 +132,33 @@ def toggle_task(task_id):
     save_tasks(tasks)
     return redirect(url_for('index'))
 
-@app.route('/delete/<task_id>')
+@app.route('/delete/<task_id>', methods=['POST'])
 def delete_task(task_id):
     tasks = load_tasks()
-    tasks = [task for task in tasks if task['id'] != task_id]
-    try:
-        scheduler.remove_job(task_id)
-    except:
-        pass
-    save_tasks(tasks)
-    return redirect(url_for('index'))
+    task = next((t for t in tasks if t['id'] == task_id), None)
+
+    if task:
+        delete_folder = 'delete_folder' in request.form
+        folder_path = os.path.join(JOBS_DIR, task['name'])  # <- CORRIGIDO AQUI
+
+        print(f"🧹 Tentando excluir: {folder_path} | Confirmado: {delete_folder}")
+
+        if delete_folder and os.path.exists(folder_path):
+            try:
+                shutil.rmtree(folder_path)
+                print("✅ Pasta excluída.")
+            except Exception as e:
+                print(f"❌ Erro ao excluir pasta: {e}")
+
+        tasks = [t for t in tasks if t['id'] != task_id]
+        save_tasks(tasks)
+
+        try:
+            scheduler.remove_job(task_id)
+        except:
+            pass
+
+    return redirect('/')
 
 if __name__ == '__main__':
     for task in load_tasks():
