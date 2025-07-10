@@ -12,6 +12,8 @@ app = Flask(__name__)
 scheduler = BackgroundScheduler()
 scheduler.start()
 
+APP_VERSION = "v1.0.1"
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
 JOBS_DIR = os.path.join(DATA_DIR, 'jobs')
@@ -68,7 +70,7 @@ def schedule_job(task):
 @app.route('/')
 def index():
     tasks = load_tasks()
-    return render_template('index.html', tasks=tasks)
+    return render_template('index.html', tasks=tasks, version=APP_VERSION)
 
 @app.route('/add', methods=['POST'])
 def add_task():
