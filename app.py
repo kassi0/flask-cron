@@ -20,7 +20,7 @@ os.environ['TZ'] = 'America/Bahia'
 if platform.system() != 'Windows':
     time.tzset()
 
-APP_VERSION = "v1.0.6"
+APP_VERSION = "v1.0.9"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
@@ -76,6 +76,8 @@ def schedule_job(task):
         trigger='cron',
         args=[task['command']],
         id=task['id'],
+        misfire_grace_time=30,  # só tenta rodar se estiver no prazo de 30s
+        coalesce=False,         # não junta execuções pendentes
         **task['cron']
     )
 
