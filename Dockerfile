@@ -17,4 +17,6 @@ RUN mkdir -p /app/dados/jobs && chmod -R 777 /app/dados
 EXPOSE 5000
 
 # Comando para rodar o servidor com Hypercorn
-CMD ["hypercorn", "app:app", "--bind", "0.0.0.0:5000"]
+ENV USE_HYPERCORN=false
+
+CMD ["sh", "-c", "if [ \"$USE_HYPERCORN\" = true ]; then hypercorn app:app --bind 0.0.0.0:5000; else python app.py; fi"]
