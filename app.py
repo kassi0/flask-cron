@@ -1,6 +1,7 @@
 
 from flask import Flask, render_template, request, redirect, url_for
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.base import JobLookupError
 import subprocess
 import uuid
 import json
@@ -12,7 +13,7 @@ app = Flask(__name__)
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-APP_VERSION = "v1.0.1"
+APP_VERSION = "v1.0.2"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'dados')
@@ -129,10 +130,13 @@ def toggle_task(task_id):
             if task['enabled']:
                 schedule_job(task)
             else:
-                scheduler.remove_job(task_id)
+                try:
+                    scheduler.remove_job(task_id)
+                except JobLookupError:
+                    pass  # Já não estava agendada, então tudo certo
             break
     save_tasks(tasks)
-    return redirect(url_for('index'))
+    return redirect('/')
 
 @app.route('/delete/<task_id>', methods=['POST'])
 def delete_task(task_id):
