@@ -147,16 +147,17 @@
                     {% endif %}
                   </div>
                   <div class="btn-group" role="group">
-                    <a href="/toggle/{{ task.id }}" class="btn btn-outline-{{ 'danger' if task.enabled else 'success' }}">
+                    <a href="/toggle/{{ task.id }}" class="btn btn-outline-{{ 'danger' if task.enabled else 'success' }} me-2">
                       {{ 'Desativar' if task.enabled else 'Ativar' }}
                     </a>
-                    <form method="post" action="/delete/{{ task.id }}" style="display:inline;">
+                    <a href="/edit/{{ task.id }}" class="btn btn-outline-warning">Editar</a>             
+                  </div>
+                  <form method="post" action="/delete/{{ task.id }}" style="display:inline;">
                       <button type="submit" class="btn btn-outline-danger"
                         onclick="return confirm('Tem certeza que quer excluir esta task?')">
                         Excluir
                       </button>
                     </form>
-                  </div>
                 </li>
               {% endfor %}
             </ul>

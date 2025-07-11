@@ -15,7 +15,7 @@ JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
 DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
-APP_VERSION = "2.1"
+APP_VERSION = "2.2"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -281,6 +281,92 @@ def delete_tarefa(tarefa):
     else:
         flash(f"Pasta da tarefa '{tarefa}' não encontrada.", "warning")
     return redirect("/")
+
+@app.route("/edit/<task_id>", methods=["GET", "POST"])
+@login_required
+def edit_task(task_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    row = cur.fetchone()
+    if not row:
+        flash("Task não encontrada.", "danger")
+        return redirect("/")
+    
+    if request.method == "POST":
+        data = request.form
+        file = request.files.get('script_file')
+        # Atualiza campos editáveis:
+        task_name = data.get('task_name', row['task_name'])
+        cron_minute = data.get('minute', row['cron_minute'])
+        cron_hour = data.get('hour', row['cron_hour'])
+        cron_day = data.get('day', row['cron_day'])
+        cron_month = data.get('month', row['cron_month'])
+        cron_day_of_week = data.get('day_of_week', row['cron_day_of_week'])
+        
+        # Script: pode trocar por upload ou seleção
+        script_name = row['script']
+        pasta_tarefa = os.path.join(JOBS_DIR, row['tarefa'])
+        if file and file.filename.endswith('.py'):
+            script_name = file.filename
+            file.save(os.path.join(pasta_tarefa, script_name))
+        elif data.get('script_existente'):
+            script_name = data['script_existente']
+
+        # Atualiza o banco
+        cur.execute('''
+            UPDATE tasks SET 
+                task_name=?, script=?, 
+                cron_minute=?, cron_hour=?, cron_day=?, cron_month=?, cron_day_of_week=?
+            WHERE id=?
+        ''', (
+            task_name, script_name,
+            cron_minute, cron_hour, cron_day, cron_month, cron_day_of_week,
+            task_id
+        ))
+        conn.commit()
+        conn.close()
+        # Reagendar
+        try:
+            scheduler.remove_job(task_id)
+        except:
+            pass
+        # Recupera task atualizada
+        cur = get_db().cursor()
+        cur.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+        t = cur.fetchone()
+        if t and t['enabled']:
+            task = {
+                'id': t['id'],
+                'tarefa': t['tarefa'],
+                'task_name': t['task_name'],
+                'script': t['script'],
+                'enabled': bool(t['enabled']),
+                'last_run': t['last_run'],
+                'last_output': t['last_output'],
+                'cron': {
+                    'minute': t['cron_minute'],
+                    'hour': t['cron_hour'],
+                    'day': t['cron_day'],
+                    'month': t['cron_month'],
+                    'day_of_week': t['cron_day_of_week']
+                }
+            }
+            schedule_job(task)
+        flash("Task editada com sucesso!", "success")
+        return redirect("/")
+    else:
+        # Renderiza a tela de edição
+        pasta_tarefa = os.path.join(JOBS_DIR, row['tarefa'])
+        scripts_existentes = []
+        if os.path.exists(pasta_tarefa):
+            scripts_existentes = [f for f in os.listdir(pasta_tarefa) if f.endswith('.py')]
+        return render_template(
+            "edit_task.html", 
+            task=row, 
+            scripts_existentes=scripts_existentes
+        )
+
 
 @app.route("/scripts/<tarefa>")
 @login_required
