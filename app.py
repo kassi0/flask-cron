@@ -1,189 +1,301 @@
-
-from flask import Flask, render_template, request, redirect, url_for
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.base import JobLookupError
-import subprocess
-import uuid
-import json
 import os
 import shutil
-import pytz
-import time
-import platform
+import uuid
+import subprocess
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
+from functools import wraps
 from datetime import datetime
-
-app = Flask(__name__)
-scheduler = BackgroundScheduler(timezone="America/Bahia")
-scheduler.start()
-os.environ['TZ'] = 'America/Bahia'
-# Só executa tzset em sistemas que suportam
-if platform.system() != 'Windows':
-    time.tzset()
-
-APP_VERSION = "v1.0.9"
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
+import sqlite3
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, 'dados')
-JOBS_DIR = os.path.join(DATA_DIR, 'jobs')
-TASK_FILE = os.path.join(DATA_DIR, 'tasks.json')
-
-print("Timezone atual:", time.tzname)
-print("Horário local:", time.strftime('%Y-%m-%d %H:%M:%S'))
-
+DADOS_DIR = os.path.join(BASE_DIR, "dados")
+JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
+DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
+APP_VERSION = "2.0"
+
+app = Flask(__name__)
+app.secret_key = "supersecretkey"
+scheduler = BackgroundScheduler(timezone=timezone("America/Sao_Paulo"))
+scheduler.start()
+app.jinja_env.globals.update(now=datetime.now)
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        tarefa TEXT,
+        task_name TEXT,
+        script TEXT,
+        enabled INTEGER,
+        last_run TEXT,
+        last_output TEXT,
+        cron_minute TEXT,
+        cron_hour TEXT,
+        cron_day TEXT,
+        cron_month TEXT,
+        cron_day_of_week TEXT
+    )
+    ''')
+    conn.commit()
+    conn.close()
+init_db()
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if request.form["username"] == "admin" and request.form["password"] == "admin":
+            session["logged_in"] = True
+            return redirect("/")
+        flash("Usuário ou senha incorretos.", "danger")
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
 def load_tasks():
-    os.makedirs(DATA_DIR, exist_ok=True)  # Garante que a pasta existe
-    if not os.path.exists(TASK_FILE):
-        with open(TASK_FILE, 'w') as f:
-            json.dump([], f)  # Cria como lista vazia
-        return []
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks")
+    rows = cur.fetchall()
+    conn.close()
+    tasks = []
+    for row in rows:
+        tasks.append({
+            'id': row['id'],
+            'tarefa': row['tarefa'],
+            'task_name': row['task_name'],
+            'script': row['script'],
+            'enabled': bool(row['enabled']),
+            'last_run': row['last_run'],
+            'last_output': row['last_output'],
+            'cron': {
+                'minute': row['cron_minute'],
+                'hour': row['cron_hour'],
+                'day': row['cron_day'],
+                'month': row['cron_month'],
+                'day_of_week': row['cron_day_of_week']
+            }
+        })
+    return tasks
 
-    with open(TASK_FILE, 'r') as f:
-        content = f.read().strip()
-        if not content:
-            return []  # <- existe mas está vazio
-        try:
-            data = json.loads(content)
-            return data if isinstance(data, list) else []
-        except json.JSONDecodeError:
-            return []
+def save_task(task):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('''REPLACE INTO tasks (
+        id, tarefa, task_name, script, enabled, last_run, last_output,
+        cron_minute, cron_hour, cron_day, cron_month, cron_day_of_week
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+        task['id'], task['tarefa'], task['task_name'], task['script'],
+        int(task['enabled']), task['last_run'], task['last_output'],
+        task['cron']['minute'], task['cron']['hour'], task['cron']['day'],
+        task['cron']['month'], task['cron']['day_of_week']
+    ))
+    conn.commit()
+    conn.close()
 
-def save_tasks(tasks):
-    with open(TASK_FILE, 'w') as f:
-        json.dump(tasks, f, indent=2)
+def delete_task_by_id(task_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
 
-def run_task(script_path):
-    full_path = os.path.join(JOBS_DIR, script_path)
-    command = f"python {full_path}"
-    print(f"Executando: {command}")
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = process.communicate()
-    output = out.decode('utf-8', errors='replace') + err.decode('utf-8', errors='replace')
+def delete_tasks_by_tarefa(tarefa):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM tasks WHERE tarefa = ?", (tarefa,))
+    conn.commit()
+    conn.close()
 
-    tasks = load_tasks()
-    for task in tasks:
-        if task['command'] == script_path:
-            task['last_run'] = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-            task['last_output'] = output.strip()
-            break
-    print(f"Tarefa {task['name']} executada às {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    save_tasks(tasks)
+def run_task(task_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return
+    script_path = os.path.join(JOBS_DIR, row['tarefa'], row['script'])
+    command = ["python", script_path]
+    try:
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate(timeout=180)
+        output = out.decode(errors="replace") + err.decode(errors="replace")
+    except Exception as e:
+        output = f"Erro ao executar: {e}"
+    last_run = datetime.now(timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
+    cur.execute('''
+        UPDATE tasks
+        SET last_run = ?, last_output = ?
+        WHERE id = ?
+    ''', (last_run, output.strip(), task_id))
+    conn.commit()
+    conn.close()
 
 def schedule_job(task):
-    scheduler.add_job(
-        func=run_task,
-        trigger='cron',
-        args=[task['command']],
-        id=task['id'],
-        misfire_grace_time=30,  # só tenta rodar se estiver no prazo de 30s
-        coalesce=False,         # não junta execuções pendentes
-        **task['cron']
-    )
+    if task.get('enabled'):
+        scheduler.add_job(
+            func=run_task,
+            trigger='cron',
+            args=[task['id']],
+            id=task['id'],
+            misfire_grace_time=60,
+            coalesce=False,
+            replace_existing=True,
+            **task['cron']
+        )
 
-@app.route('/')
+@app.route("/")
+@login_required
 def index():
     tasks = load_tasks()
-    return render_template('index.html', tasks=tasks, version=APP_VERSION)
+    tarefas = {}
+    for t in tasks:
+        tarefas.setdefault(t['tarefa'], []).append(t)
+    tarefa_nomes = sorted(list(set(t['tarefa'] for t in tasks)))
+    from datetime import datetime
+    return render_template(
+        "index.html",
+        tarefas=tarefas,
+        tarefa_nomes=tarefa_nomes,
+        versao=APP_VERSION,
+        ano=datetime.now().year
+    )
 
-@app.route('/add', methods=['POST'])
+@app.route("/add", methods=["POST"])
+@login_required
 def add_task():
     data = request.form
     file = request.files.get('script_file')
-    command_input = data.get('command', '').strip()
-    task_name = data['name'].strip()
-    task_folder = os.path.join(JOBS_DIR, task_name)
-    os.makedirs(task_folder, exist_ok=True)
+    tarefa = data['tarefa'].strip() if data.get('tarefa') else ""
+    tarefa_nova = data.get('tarefa_nova', "").strip()
+    task_name = data['task_name'].strip() if data.get('task_name') else ""
+    if tarefa_nova:
+        tarefa = tarefa_nova
+    if not tarefa:
+        flash("Informe a tarefa.", "danger")
+        return redirect("/")
+    pasta_tarefa = os.path.join(JOBS_DIR, tarefa)
+    os.makedirs(pasta_tarefa, exist_ok=True)
 
     script_name = None
     if file and file.filename.endswith('.py'):
         script_name = file.filename
-        file.save(os.path.join(task_folder, script_name))
-    elif command_input:
-        source_path = os.path.join(JOBS_DIR, command_input)
-        dest_path = os.path.join(task_folder, command_input)
-        if os.path.exists(source_path):
-            import shutil
-            shutil.copy2(source_path, dest_path)
-            script_name = command_input
-        else:
-            return f"Script '{command_input}' não encontrado.", 400
+        file.save(os.path.join(pasta_tarefa, script_name))
+    elif data.get('script_existente'):
+        script_name = data['script_existente']
     else:
-        return "Você deve fornecer um script .py via upload ou nome existente.", 400
+        flash("Informe ou faça upload de um script .py.", "danger")
+        return redirect("/")
 
     task_id = str(uuid.uuid4())
     task = {
         'id': task_id,
-        'name': task_name,
-        'command': f"{task_name}/{script_name}",
+        'tarefa': tarefa,
+        'task_name': task_name,
+        'script': script_name,
         'enabled': True,
         'last_run': None,
-        'last_output': '',
+        'last_output': "",
         'cron': {
             'minute': data['minute'],
             'hour': data['hour'],
             'day': data['day'],
             'month': data['month'],
-            'day_of_week': data['dow']
+            'day_of_week': data['day_of_week']
         }
     }
-
-    tasks = load_tasks()
-    tasks.append(task)
-    save_tasks(tasks)
+    save_task(task)
     schedule_job(task)
-    return redirect(url_for('index'))
+    flash(f"Task '{task_name}' criada com sucesso.", "success")
+    return redirect("/")
 
-@app.route('/toggle/<task_id>')
+@app.route("/toggle/<task_id>")
+@login_required
 def toggle_task(task_id):
     tasks = load_tasks()
     for task in tasks:
         if task['id'] == task_id:
             task['enabled'] = not task['enabled']
+            save_task(task)
             if task['enabled']:
                 schedule_job(task)
             else:
                 try:
                     scheduler.remove_job(task_id)
-                except JobLookupError:
-                    pass  # Já não estava agendada, então tudo certo
-            break
-    save_tasks(tasks)
-    return redirect('/')
+                except:
+                    pass
+    return redirect("/")
 
-@app.route('/delete/<task_id>', methods=['POST'])
+@app.route("/delete/<task_id>", methods=["POST"])
+@login_required
 def delete_task(task_id):
+    try:
+        scheduler.remove_job(task_id)
+    except:
+        pass
+    delete_task_by_id(task_id)
+    flash("Task excluída.", "success")
+    return redirect("/")
+
+@app.route("/delete_tarefa/<tarefa>", methods=["POST"])
+@login_required
+def delete_tarefa(tarefa):
     tasks = load_tasks()
-    task = next((t for t in tasks if t['id'] == task_id), None)
-
-    if task:
-        delete_folder = 'delete_folder' in request.form
-        folder_path = os.path.join(JOBS_DIR, task['name'])  # <- CORRIGIDO AQUI
-
-        print(f"🧹 Tentando excluir: {folder_path} | Confirmado: {delete_folder}")
-
-        if delete_folder and os.path.exists(folder_path):
+    for task in tasks:
+        if task['tarefa'] == tarefa:
             try:
-                shutil.rmtree(folder_path)
-                print("✅ Pasta excluída.")
-            except Exception as e:
-                print(f"❌ Erro ao excluir pasta: {e}")
-
-        tasks = [t for t in tasks if t['id'] != task_id]
-        save_tasks(tasks)
-
+                scheduler.remove_job(task['id'])
+            except:
+                pass
+    delete_tasks_by_tarefa(tarefa)
+    # Remove a pasta do disco, se existir
+    pasta = os.path.join(JOBS_DIR, tarefa)
+    if os.path.exists(pasta):
         try:
-            scheduler.remove_job(task_id)
-        except:
-            pass
+            shutil.rmtree(pasta)
+            flash(f"Tarefa '{tarefa}' e arquivos excluídos com sucesso.", "success")
+        except Exception as e:
+            flash(f"Erro ao excluir a pasta da tarefa: {e}", "danger")
+    else:
+        flash(f"Pasta da tarefa '{tarefa}' não encontrada.", "warning")
+    return redirect("/")
 
-    return redirect('/')
+@app.route("/scripts/<tarefa>")
+@login_required
+def scripts_por_tarefa(tarefa):
+    pasta = os.path.join(JOBS_DIR, tarefa)
+    if not os.path.isdir(pasta):
+        return jsonify(scripts=[])
+    lista = [f for f in os.listdir(pasta) if f.endswith('.py')]
+    return jsonify(scripts=lista)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for task in load_tasks():
         if task['enabled']:
             try:
                 schedule_job(task)
-            except:
-                pass
-    app.run(host='0.0.0.0', port=5000, debug=True)
+            except Exception as e:
+                print(f"Erro ao agendar: {e}")
+    app.run(debug=True, host="0.0.0.0",port=5050)
