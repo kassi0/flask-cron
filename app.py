@@ -8,6 +8,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import timezone
 import sqlite3
+import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DADOS_DIR = os.path.join(BASE_DIR, "dados")
@@ -15,7 +16,7 @@ JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
 DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
-APP_VERSION = "2.5"
+APP_VERSION = "2.6"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -234,8 +235,10 @@ def add_task():
 @app.route("/tasks/status")
 @login_required
 def tasks_status():
+    # Silencia o log só para esse endpoint
+    if request.endpoint == 'tasks_status':
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
     tasks = load_tasks()
-    # Só pega os campos que precisa, pra não mandar coisa demais
     status = []
     for t in tasks:
         status.append({
