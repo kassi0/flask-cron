@@ -15,7 +15,7 @@ JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
 DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
-APP_VERSION = "2.2"
+APP_VERSION = "2.3"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -377,11 +377,16 @@ def scripts_por_tarefa(tarefa):
     lista = [f for f in os.listdir(pasta) if f.endswith('.py')]
     return jsonify(scripts=lista)
 
+print(f"PID={os.getpid()}, debug={app.debug}, WERKZEUG_RUN_MAIN={os.environ.get('WERKZEUG_RUN_MAIN')}")
+
 if __name__ == "__main__":
-    for task in load_tasks():
-        if task['enabled']:
-            try:
-                schedule_job(task)
-            except Exception as e:
-                print(f"Erro ao agendar: {e}")
-    app.run(debug=True, host="0.0.0.0",port=5000)
+    # Só agenda se não estiver no modo reloader do Flask
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        for task in load_tasks():
+            if task['enabled']:
+                try:
+                    schedule_job(task)
+                except Exception as e:
+                    print(f"Erro ao agendar: {e}")
+    app.run(debug=False, host="0.0.0.0", port=5000)
+

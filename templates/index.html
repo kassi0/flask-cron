@@ -40,7 +40,17 @@
 </head>
 <body class="bg-light">
     <div class="container py-4">
-        <h1 class="mb-4">Gerenciador de Tarefas Cron</h1>
+        <h1 class="mb-4 d-flex align-items-center">
+            Gerenciador de Tarefas Cron
+            <button type="button" class="btn btn-link p-0 ms-2" 
+              data-bs-toggle="popover" 
+              data-bs-trigger="focus"
+              title="Como funciona o Agendamento"
+              data-bs-content="O APScheduler executa scripts Python com base na expressão cron configurada em cada task. A expressão segue o padrão: minuto, hora, dia, mês, dia da semana. Exemplo: '0 8 * * 0-4' executa de segunda a sexta às 08:00.">
+              <span class="badge bg-info text-dark" style="font-size:1em;">?</span>
+            </button>
+        </h1>
+
         <a href="/logout" class="btn btn-outline-secondary mb-3 float-end">Logout</a>
         <div class="clearfix"></div>
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -170,5 +180,14 @@
           <small>v{{ versao }} - {{ ano }} &copy; Cassio Telles</small>
       </footer>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        popoverTriggerList.forEach(function (popoverTriggerEl) {
+          new bootstrap.Popover(popoverTriggerEl)
+        })
+      })
+    </script>
 </body>
 </html>
