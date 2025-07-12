@@ -37,7 +37,6 @@
       setInterval(atualizaRelogio, 1000);
       window.onload = atualizaRelogio;
     </script>
-    <meta http-equiv="refresh" content="10">
 </head>
 <body class="bg-light">
     <div class="container py-4">
@@ -147,15 +146,15 @@
                     <small class="text-muted">
                       Cron: {{ task.cron.minute }} {{ task.cron.hour }} {{ task.cron.day }} {{ task.cron.month }} {{ task.cron.day_of_week }}
                     </small><br>
+                    <!-- ID aqui pra atualização do AJAX -->
                     <small class="text-muted">
-                      Última execução: {{ task.last_run or 'Nunca executado' }}
+                      Última execução: <span id="lastrun-{{ task.id }}">{{ task.last_run or 'Nunca executado' }}</span>
                     </small><br>
-                    {% if task.last_output %}
-                      <details>
-                        <summary>Ver saída</summary>
-                        <pre class="bg-dark text-light p-2 rounded small">{{ task.last_output }}</pre>
-                      </details>
-                    {% endif %}
+                    <!-- Sempre mostra detalhes para o AJAX atualizar -->
+                    <details>
+                      <summary>Ver saída</summary>
+                      <pre class="bg-dark text-light p-2 rounded small" id="output-{{ task.id }}">{{ task.last_output }}</pre>
+                    </details>
                   </div>
                   <div class="btn-group" role="group">
                     <a href="/toggle/{{ task.id }}" class="btn btn-outline-{{ 'danger' if task.enabled else 'success' }} me-2">
@@ -189,6 +188,23 @@
           new bootstrap.Popover(popoverTriggerEl)
         })
       })
+
+      // ----------- AJAX para atualizar saída das tasks (output e last_run) -----------
+      function atualizarSaidas() {
+        fetch('/tasks/status')
+          .then(resp => resp.json())
+          .then(data => {
+            data.tasks.forEach(task => {
+              // Atualiza saída
+              const outEl = document.getElementById('output-' + task.id);
+              if (outEl) outEl.textContent = task.last_output || '';
+              // Atualiza última execução
+              const runEl = document.getElementById('lastrun-' + task.id);
+              if (runEl) runEl.textContent = task.last_run || 'Nunca executado';
+            });
+          });
+      }
+      setInterval(atualizarSaidas, 5000); // Atualiza a cada 5 segundos
     </script>
 </body>
 </html>

@@ -15,7 +15,7 @@ JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
 DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
-APP_VERSION = "2.3"
+APP_VERSION = "2.4"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -230,6 +230,22 @@ def add_task():
     schedule_job(task)
     flash(f"Task '{task_name}' criada com sucesso.", "success")
     return redirect("/")
+
+@app.route("/tasks/status")
+@login_required
+def tasks_status():
+    tasks = load_tasks()
+    # Só pega os campos que precisa, pra não mandar coisa demais
+    status = []
+    for t in tasks:
+        status.append({
+            'id': t['id'],
+            'last_output': t['last_output'],
+            'last_run': t['last_run'],
+            'enabled': t['enabled'],
+        })
+    return jsonify({'tasks': status})
+
 
 @app.route("/toggle/<task_id>")
 @login_required
