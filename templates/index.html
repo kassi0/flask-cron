@@ -135,6 +135,7 @@
               </form>
             </div>
             <ul class="list-group list-group-flush">
+
               {% for task in lista %}
                 <li class="list-group-item d-flex justify-content-between align-items-start">
                   <div>
@@ -146,21 +147,21 @@
                     <small class="text-muted">
                       Cron: {{ task.cron.minute }} {{ task.cron.hour }} {{ task.cron.day }} {{ task.cron.month }} {{ task.cron.day_of_week }}
                     </small><br>
-                    <!-- ID aqui pra atualização do AJAX -->
                     <small class="text-muted">
                       Última execução: <span id="lastrun-{{ task.id }}">{{ task.last_run or 'Nunca executado' }}</span>
                     </small><br>
-                    <!-- Sempre mostra detalhes para o AJAX atualizar -->
-                    <details>
-                      <summary>Ver saída</summary>
-                      <pre class="bg-dark text-light p-2 rounded small" id="output-{{ task.id }}">{{ task.last_output }}</pre>
-                    </details>
+                    {% if task.last_output %}
+                      <details>
+                        <summary>Ver saída</summary>
+                        <pre class="bg-dark text-light p-2 rounded small" id="output-{{ task.id }}">{{ task.last_output }}</pre>
+                      </details>
+                    {% endif %}
                   </div>
                   <div class="btn-group" role="group">
                     <a href="/toggle/{{ task.id }}" class="btn btn-outline-{{ 'danger' if task.enabled else 'success' }} me-2">
                       {{ 'Desativar' if task.enabled else 'Ativar' }}
                     </a>
-                    <a href="/edit/{{ task.id }}" class="btn btn-outline-warning">Editar</a>             
+                    <a href="/edit/{{ task.id }}" class="btn btn-outline-warning">Editar</a>
                   </div>
                   <form method="post" action="/delete/{{ task.id }}" style="display:inline;">
                       <button type="submit" class="btn btn-outline-danger"
@@ -170,6 +171,8 @@
                     </form>
                 </li>
               {% endfor %}
+
+
             </ul>
           </div>
         {% endfor %}
@@ -195,16 +198,41 @@
           .then(resp => resp.json())
           .then(data => {
             data.tasks.forEach(task => {
-              // Atualiza saída
-              const outEl = document.getElementById('output-' + task.id);
-              if (outEl) outEl.textContent = task.last_output || '';
               // Atualiza última execução
               const runEl = document.getElementById('lastrun-' + task.id);
               if (runEl) runEl.textContent = task.last_run || 'Nunca executado';
+
+              // Atualiza saída dinâmica
+              const listItem = runEl?.closest('.list-group-item');
+              if (!listItem) return;
+
+              let details = listItem.querySelector('details[data-taskid="' + task.id + '"]');
+              if (task.last_output && !details) {
+                // Criar bloco de saída se não existir
+                details = document.createElement('details');
+                details.setAttribute('data-taskid', task.id);
+                details.innerHTML = `
+                  <summary>Ver saída</summary>
+                  <pre class="bg-dark text-light p-2 rounded small" id="output-${task.id}"></pre>
+                `;
+                // Adiciona no lugar correto (depois do "Última execução")
+                const smalls = listItem.querySelectorAll('small.text-muted');
+                smalls[smalls.length - 1].after(details);
+              }
+              // Se tem saída, atualiza o texto
+              if (task.last_output) {
+                const pre = listItem.querySelector('#output-' + task.id);
+                if (pre) pre.textContent = task.last_output;
+              }
+              // Se NÃO tem saída e bloco existe, remove o bloco
+              if (!task.last_output && details) {
+                details.remove();
+              }
             });
           });
       }
-      setInterval(atualizarSaidas, 5000); // Atualiza a cada 5 segundos
+      setInterval(atualizarSaidas, 5000);
+
     </script>
 </body>
 </html>

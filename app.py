@@ -15,7 +15,7 @@ JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
 DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
-APP_VERSION = "2.4"
+APP_VERSION = "2.5"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
