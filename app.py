@@ -16,7 +16,7 @@ JOBS_DIR = os.path.join(DADOS_DIR, "jobs")
 DB_PATH = os.path.join(DADOS_DIR, "tasks.db")
 os.makedirs(JOBS_DIR, exist_ok=True)
 
-APP_VERSION = "2.6"
+APP_VERSION = "2.8.0"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -141,7 +141,7 @@ def run_task(task_id):
     command = ["python", script_path]
     try:
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate(timeout=180)
+        out, err = proc.communicate(timeout=7500)
         output = out.decode(errors="replace") + err.decode(errors="replace")
     except Exception as e:
         output = f"Erro ao executar: {e}"
