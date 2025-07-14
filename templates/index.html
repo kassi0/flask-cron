@@ -151,7 +151,7 @@
                       Última execução: <span id="lastrun-{{ task.id }}">{{ task.last_run or 'Nunca executado' }}</span>
                     </small><br>
                     {% if task.last_output %}
-                      <details>
+                      <details data-taskid="{{ task.id }}">
                         <summary>Ver saída</summary>
                         <pre class="bg-dark text-light p-2 rounded small" id="output-{{ task.id }}">{{ task.last_output }}</pre>
                       </details>
@@ -206,8 +206,14 @@
               const listItem = runEl?.closest('.list-group-item');
               if (!listItem) return;
 
-              // Busca o bloco details existente
+              // Busca o bloco details existente pelo data-taskid
               let details = listItem.querySelector('details[data-taskid="' + task.id + '"]');
+              // Remove todos detalhes duplicados antes de criar
+              let allDetails = listItem.querySelectorAll('details[data-taskid="' + task.id + '"]');
+              if (allDetails.length > 1) {
+                // Mantém só o primeiro, remove os outros
+                allDetails.forEach((d, i) => { if (i > 0) d.remove(); });
+              }
 
               if (task.last_output) {
                 if (!details) {
@@ -233,7 +239,6 @@
           });
       }
       setInterval(atualizarSaidas, 5000);
-
 
     </script>
 </body>
