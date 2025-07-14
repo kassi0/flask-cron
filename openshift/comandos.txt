@@ -1,4 +1,4 @@
-oc new-app python3.12~https://github.com/kassi0/flask-cron.git --name flask-cron
+oc new-app python:3.12~https://github.com/kassi0/flask-cron.git --name flask-cron
 oc new-build --name=flask-cron --strategy=docker --binary
 oc start-build flask-cron --from-dir=. --follow
 oc new-app flask-cron
@@ -13,3 +13,6 @@ oc expose deployment flask-cron --port=5000
 oc create pvc dados-pvc --request=1Gi --access-mode=ReadWriteOnce
 
 oc apply -f flask-cron-deployment.yaml
+
+
+oc adm policy add-scc-to-user anyuid -z default -n painelsga

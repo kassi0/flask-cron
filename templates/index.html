@@ -202,36 +202,38 @@
               const runEl = document.getElementById('lastrun-' + task.id);
               if (runEl) runEl.textContent = task.last_run || 'Nunca executado';
 
-              // Atualiza saída dinâmica
+              // DOM do list item
               const listItem = runEl?.closest('.list-group-item');
               if (!listItem) return;
 
+              // Busca o bloco details existente
               let details = listItem.querySelector('details[data-taskid="' + task.id + '"]');
-              if (task.last_output && !details) {
-                // Criar bloco de saída se não existir
-                details = document.createElement('details');
-                details.setAttribute('data-taskid', task.id);
-                details.innerHTML = `
-                  <summary>Ver saída</summary>
-                  <pre class="bg-dark text-light p-2 rounded small" id="output-${task.id}"></pre>
-                `;
-                // Adiciona no lugar correto (depois do "Última execução")
-                const smalls = listItem.querySelectorAll('small.text-muted');
-                smalls[smalls.length - 1].after(details);
-              }
-              // Se tem saída, atualiza o texto
+
               if (task.last_output) {
+                if (!details) {
+                  // Cria se não existe
+                  details = document.createElement('details');
+                  details.setAttribute('data-taskid', task.id);
+                  details.innerHTML = `
+                    <summary>Ver saída</summary>
+                    <pre class="bg-dark text-light p-2 rounded small" id="output-${task.id}"></pre>
+                  `;
+                  // Coloca depois do último <small>
+                  const smalls = listItem.querySelectorAll('small.text-muted');
+                  smalls[smalls.length - 1].after(details);
+                }
+                // Sempre atualiza a saída
                 const pre = listItem.querySelector('#output-' + task.id);
                 if (pre) pre.textContent = task.last_output;
-              }
-              // Se NÃO tem saída e bloco existe, remove o bloco
-              if (!task.last_output && details) {
-                details.remove();
+              } else {
+                // Se não tem saída e existe, remove o bloco details
+                if (details) details.remove();
               }
             });
           });
       }
       setInterval(atualizarSaidas, 5000);
+
 
     </script>
 </body>
